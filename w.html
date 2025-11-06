@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Punished by Warchief</title>
+<link rel="icon" type="image/png" href="https://github.com/dominusfraudis/dominufraudis-assets/raw/main/dominusfraudis_logo-removebg-preview.png">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --matrix-green:#00ff66;
+    --glass-reflect: rgba(255,255,255,0.035);
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    font-family:'Orbitron', monospace;
+    background:url("https://github.com/dominusfraudis/dominufraudis-assets/raw/main/flag1.png") center/cover no-repeat fixed;
+    color:white;
+    overflow:hidden;
+  }
+
+  #bgcanvas { position:fixed; inset:0; z-index:0; mix-blend-mode:overlay; }
+
+  .overlay {
+    position:relative;
+    z-index:2;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:24px;
+    box-sizing:border-box;
+  }
+
+  .card {
+    background:rgba(0,0,0,0.45);
+    border:1px solid rgba(255,255,255,0.05);
+    border-radius:16px;
+    padding:40px 26px;
+    backdrop-filter: blur(10px) saturate(140%);
+    box-shadow:0 12px 48px rgba(0,0,0,0.8);
+    max-width:800px;
+    width:95%;
+  }
+
+  .logo {
+    width:180px;
+    height:auto;
+    animation:logoFloat 6s ease-in-out infinite;
+    margin-bottom:24px;
+  }
+  @keyframes logoFloat {0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+  .title {
+    font-size:2.2rem;
+    color:var(--matrix-green);
+    letter-spacing:1px;
+    text-shadow:0 0 10px rgba(0,255,102,0.6);
+    display:inline-block;
+    position:relative;
+  }
+
+  .tagline { color:#e0ffe0; font-style:italic; margin-top:10px; }
+
+  .btn-statement {
+    margin-top:26px;
+    background:rgba(0,255,102,0.1);
+    border:1px solid rgba(0,255,102,0.5);
+    border-radius:8px;
+    color:var(--matrix-green);
+    font-weight:600;
+    padding:10px 18px;
+    cursor:pointer;
+    transition:all 0.3s ease;
+    backdrop-filter:blur(4px);
+  }
+  .btn-statement:hover { background:rgba(255,255,255,0.1); color:white; transform:scale(1.05); }
+
+  footer { margin-top:30px; color:#b9c6bf; font-size:1.2rem; }
+  .hidden-link { text-decoration:none; color:inherit; cursor:pointer; }
+
+  /* ===== Terminal Modal ===== */
+  .modal {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.75);
+    backdrop-filter:blur(8px);
+    align-items:center;
+    justify-content:center;
+    z-index:999;
+  }
+
+  .terminal-window {
+    position:relative;
+    background:transparent;
+    border-radius:10px;
+    box-shadow:0 0 44px rgba(0,0,0,0.7);
+    width:min(640px,92%);
+    max-height:86vh;
+    color:var(--matrix-green);
+    font-family:'Courier New', monospace;
+    overflow:hidden;
+    border:1px solid rgba(0,255,102,0.08);
+  }
+
+  /* Smaller + more transparent logo background */
+  .terminal-window::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image: url("https://raw.githubusercontent.com/dominusfraudis/dominufraudis-assets/main/dominusfraudis_logo-removebg-preview.png");
+    background-size: 40% auto;          /* smaller logo */
+    background-repeat: no-repeat;
+    background-position: center center;
+    opacity: 0.70;                       /* lighter / more transparent */
+    filter: blur(1px) saturate(80%);
+    z-index:0;
+    pointer-events:none;
+  }
+
+  /* subtle dark overlay so text remains readable */
+  .terminal-window::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background: linear-gradient(rgba(0,0,0,0.60), rgba(0,0,0,0.68));
+    z-index:1;
+    pointer-events:none;
+  }
+
+  /* glass reflection (subtle) */
+  .terminal-window .glass-reflect {
+    position:absolute;
+    top:6%;
+    left:0;
+    right:0;
+    height:22%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
+    transform:skewY(-6deg);
+    opacity:0.55;
+    z-index:1;
+    pointer-events:none;
+    mix-blend-mode:soft-light;
+  }
+
+  .terminal-header {
+    position:relative;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    padding:8px 12px;
+    background:transparent;
+    border-bottom:1px solid rgba(0,255,102,0.06);
+  }
+  .term-btn { width:12px; height:12px; border-radius:50%; margin-right:6px; z-index:2; }
+  .term-btn.red { background:#ff5f56; cursor:pointer; }
+  .term-btn.yellow { background:#ffbd2e; }
+  .term-btn.green { background:#27c93f; }
+  .term-title {
+    font-size:0.9rem;
+    position:absolute;
+    left:50%; transform:translateX(-50%);
+    color:var(--matrix-green); z-index:2; opacity:0.9;
+  }
+
+  .terminal-body {
+    position:relative;
+    z-index:2;
+    padding:16px;
+    font-size:0.95rem;
+    line-height:1.48;
+    white-space:pre-wrap;
+    color:#d9ffdf;   /* slightly brighter, still greenish */
+    max-height:62vh;
+    overflow:auto;
+  }
+
+  .cursor {
+    display:inline-block;
+    width:10px;
+    background:var(--matrix-green);
+    margin-left:4px;
+    animation:blink 1s infinite;
+  }
+  @keyframes blink { 0%,50%{opacity:1} 50.1%,100%{opacity:0} }
+
+  @media(max-width:760px){
+    .terminal-window { width: 96%; }
+    .logo{width:140px}
+    .title{font-size:1.6rem}
+  }
+</style>
+</head>
+<body>
+
+<audio id="bgmusic" autoplay loop>
+  <source src="https://github.com/dominusfraudis/dominufraudis-assets/raw/main/Pegboard%20Nerds.mp3" type="audio/mpeg">
+</audio>
+
+<canvas id="bgcanvas"></canvas>
+
+<div class="overlay">
+  <div class="card">
+    <img class="logo" src="https://github.com/dominusfraudis/dominufraudis-assets/raw/main/dominusfraudis_logo-removebg-preview.png" alt="Dominus Fraudis logo"> <br>
+    <div class="title">
+      PUNISHED BY WARCHIEF
+    </div>
+    <div class="tagline"><strong>“Arte Non Vi” – Skill, Not Force</strong></div>
+    <button class="btn-statement" onclick="showStatement()">View Official Statement</button>
+
+    <footer>
+      <strong>Greetings to <a href="https://web.facebook.com/profile.php?id=61576009119721" target="_blank" rel="noopener noreferrer" class="hidden-link">NULLSEC PHILIPPINES</a></strong><br>
+      Where Security Ends, Anarchy Begins<br>
+      In the Wired World, Safety is only an Illusion<br><br>
+    </footer>
+
+    <em>psSeraphim@root~: | Ph.Bin0x | Lei$ | r3dh0t:~$ | Nostra<br>
+    Astria | Zedd | Astral | Lost32x | W1z | crypt0nymz</em><br><br>
+  </div>
+</div>
+
+<!-- Terminal Modal -->
+<div class="modal" id="statementModal" aria-hidden="true">
+  <div class="terminal-window" role="dialog" aria-label="Official statement terminal">
+    <div class="glass-reflect" aria-hidden="true"></div>
+    <div class="terminal-header">
+      <div class="term-btn red" id="termCloseBtn" title="Close (Esc)"></div>
+      <div class="term-btn yellow"></div>
+      <div class="term-btn green"></div>
+      <span class="term-title">Terminal — Official Statement</span>
+    </div>
+    <div class="terminal-body" id="terminalBody" tabindex="0" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+/* Terminal modal with smaller, lighter logo background + glass reflection.
+   Fast typing with blinking cursor. Close via red dot, Esc, or clicking outside.
+*/
+
+const CHAR_MS = 18;   // per-character typing speed (fast)
+const LINE_PAUSE = 120;
+
+const LINES = [
+  "Warchief@root:~# cat /etc/official_statement.txt",
+  "",
+  "I've identified serious security vulnerabilities.",
+  "Take this as your FINAL WARNING.",
+  "",
+  "If you want help to fix your vulnerabilities,",
+  "contact:   dominusfraudis@proton.me",
+  "",
+  "Decide now. Time is not on your side.",
+  "Take it or leave it. Good luck...",
+  "",
+  ""
+];
+
+const modal = document.getElementById('statementModal');
+const terminalBody = document.getElementById('terminalBody');
+const closeBtn = document.getElementById('termCloseBtn');
+
+let typingTimer = null;
+let stopFlag = false;
+
+function showStatement(){
+  stopFlag = false;
+  terminalBody.innerHTML = "";
+  modal.style.display = "flex";
+  modal.setAttribute('aria-hidden','false');
+
+  // starting line with cursor
+  const firstLine = document.createElement('div');
+  firstLine.textContent = "";
+  terminalBody.appendChild(firstLine);
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  firstLine.appendChild(cursor);
+
+  // start typing
+  typeLines(0, 0, cursor);
+  // accessibility focus
+  setTimeout(()=> terminalBody.focus(), 200);
+}
+
+function typeLines(lineIdx, charIdx, cursor){
+  if (stopFlag) return;
+  if (lineIdx >= LINES.length){
+    // finished: place prompt with blinking cursor
+    if (cursor && cursor.parentNode) cursor.remove();
+    const promptLine = document.createElement('div');
+    promptLine.innerHTML = "DominusFraudis@root:~# <span class='cursor'></span>";
+    terminalBody.appendChild(promptLine);
+    terminalBody.scrollTop = terminalBody.scrollHeight;
+    return;
+  }
+  const line = LINES[lineIdx];
+  if (charIdx < line.length){
+    // write next char
+    if (cursor.parentNode) cursor.remove();
+    terminalBody.lastChild.textContent += line.charAt(charIdx);
+    terminalBody.lastChild.appendChild(cursor);
+    charIdx++;
+    terminalBody.scrollTop = terminalBody.scrollHeight;
+    typingTimer = setTimeout(()=> typeLines(lineIdx, charIdx, cursor), CHAR_MS);
+  } else {
+    // finish line, push newline and short pause
+    if (cursor.parentNode) cursor.remove();
+    terminalBody.lastChild.textContent += "\n";
+    lineIdx++;
+    charIdx = 0;
+    // create new line element and put cursor there
+    const nextLine = document.createElement('div');
+    nextLine.textContent = "";
+    terminalBody.appendChild(nextLine);
+    nextLine.appendChild(cursor);
+    terminalBody.scrollTop = terminalBody.scrollHeight;
+    typingTimer = setTimeout(()=> typeLines(lineIdx, charIdx, cursor), LINE_PAUSE);
+  }
+}
+
+function closeStatement(){
+  stopFlag = true;
+  if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
+  modal.style.display = "none";
+  modal.setAttribute('aria-hidden','true');
+}
+
+// clicking red dot closes modal
+closeBtn.addEventListener('click', closeStatement);
+
+// allow Esc to close
+document.addEventListener('keydown', (e)=>{
+  if (e.key === 'Escape') closeStatement();
+});
+
+// close when clicking outside the terminal window
+modal.addEventListener('click', (ev)=>{
+  if (ev.target === modal) closeStatement();
+});
+
+// audio fade-in
+const music=document.getElementById('bgmusic');
+music.volume=0;
+let vol=0;
+const fade=setInterval(()=>{
+  if(vol<0.4){ vol+=0.02; music.volume = vol; } else clearInterval(fade);
+},100);
+
+/* Particle background preserved */
+const canvas=document.getElementById('bgcanvas');
+const ctx=canvas.getContext('2d');
+let w,h,DPR;
+function resize(){
+  w=canvas.width=innerWidth;
+  h=canvas.height=innerHeight;
+  DPR=Math.max(1,window.devicePixelRatio||1);
+  canvas.width=w*DPR;
+  canvas.height=h*DPR;
+  canvas.style.width=w+'px';
+  canvas.style.height=h+'px';
+  ctx.scale(DPR,DPR);
+}
+resize();
+window.addEventListener('resize', resize);
+
+const particles=[];
+const count=50;
+for(let i=0;i<count;i++){
+  particles.push({
+    x:Math.random()*w,
+    y:Math.random()*h,
+    vx:(Math.random()-0.5)*0.3,
+    vy:(Math.random()-0.5)*0.3,
+    r:1+Math.random()*2.5,
+    hue:120+Math.random()*40
+  });
+}
+function loop(){
+  ctx.clearRect(0,0,w,h);
+  for(let i=0;i<particles.length;i++){
+    const p=particles[i];
+    for(let j=i+1;j<particles.length;j++){
+      const q=particles[j];
+      const dx=p.x-q.x;
+      const dy=p.y-q.y;
+      const d=Math.hypot(dx,dy);
+      if(d<110){
+        ctx.strokeStyle=`rgba(0,255,102,${(1-d/110)*0.06})`;
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y);
+        ctx.lineTo(q.x,q.y);
+        ctx.stroke();
+      }
+    }
+  }
+  for(const p of particles){
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<-10)p.x=w+10;
+    if(p.x>w+10)p.x=-10;
+    if(p.y<-10)p.y=h+10;
+    if(p.y>h+10)p.y=-10;
+    ctx.fillStyle=`hsla(${Math.floor(p.hue)},100%,50%,0.9)`;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fill();
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
+
